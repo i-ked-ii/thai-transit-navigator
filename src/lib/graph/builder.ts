@@ -2,7 +2,19 @@ import type { Line, Interchange, LineId, OperatorId } from '@/types';
 import type { Graph, GraphEdge } from './types';
 import { createGraph, addBidirectionalEdge } from './graph';
 
-const AVERAGE_TRAVEL_TIME_PER_STATION = 2.5; // minutes
+// Real travel time per station by line (verified against BTS API + Google Maps)
+// BTS API confirms exactly 2 min between all BTS stations
+// ARL: Google Maps shows ~3 min/stop average (Hua Mak→Phaya Thai = 12 min, 4 stops)
+// MRT Blue: Google Maps shows ~2.5 min/stop average
+const TRAVEL_TIME_PER_STATION: Record<string, number> = {
+  'bts-sukhumvit': 2.0, // BTS API: exactly 2 min between all stations
+  'bts-silom': 2.0,     // BTS API: exactly 2 min between all stations
+  'bts-gold': 2.0,      // BTS API: 2 min
+  'arl': 3.0,           // Google Maps: Hua Mak→Phaya Thai 12 min / 4 stops
+  'mrt-blue': 2.5,      // Google Maps verified average
+  'mrt-purple': 2.5,    // Similar to MRT Blue
+  'default': 2.5,
+};
 
 export function buildGraph(lines: Line[], interchanges: Interchange[]): Graph {
   const graph = createGraph();
@@ -20,6 +32,7 @@ export function buildGraph(lines: Line[], interchanges: Interchange[]): Graph {
 
 function addLineEdges(graph: Graph, line: Line): void {
   const { stationIds, isLoop } = line;
+  const timePerStation = TRAVEL_TIME_PER_STATION[line.id] ?? TRAVEL_TIME_PER_STATION['default'];
 
   // Connect consecutive stations
   for (let i = 0; i < stationIds.length - 1; i++) {
@@ -28,7 +41,7 @@ function addLineEdges(graph: Graph, line: Line): void {
       to: stationIds[i + 1],
       lineId: line.id,
       operatorId: line.operatorId,
-      travelTimeMinutes: AVERAGE_TRAVEL_TIME_PER_STATION,
+      travelTimeMinutes: timePerStation,
       isTransfer: false,
       stationCount: 1,
     };
@@ -42,7 +55,7 @@ function addLineEdges(graph: Graph, line: Line): void {
       to: stationIds[0],
       lineId: line.id,
       operatorId: line.operatorId,
-      travelTimeMinutes: AVERAGE_TRAVEL_TIME_PER_STATION,
+      travelTimeMinutes: timePerStation,
       isTransfer: false,
       stationCount: 1,
     };

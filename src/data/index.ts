@@ -3,6 +3,7 @@ import { btsSukhumvitStations } from './stations/bts-sukhumvit';
 import { btsSilomStations } from './stations/bts-silom';
 import { mrtBlueStations } from './stations/mrt-blue';
 import { arlStations } from './stations/arl';
+import { mrtPurpleStations } from './stations/mrt-purple';
 import { lines } from './lines';
 import { interchanges } from './interchanges';
 
@@ -13,6 +14,7 @@ export const allStations: Station[] = [
   ...btsSilomStations,
   ...mrtBlueStations,
   ...arlStations,
+  ...mrtPurpleStations,
 ];
 
 const stationMap = new Map<string, Station>();

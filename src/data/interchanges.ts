@@ -57,4 +57,11 @@ export const interchanges: Interchange[] = [
     walkingTimeMinutes: 3,
     description: { th: 'ทางเชื่อม', en: 'Connected walkway' },
   },
+  // MRT Blue Tao Poon ↔ MRT Purple Tao Poon
+  {
+    fromStationId: 'mrt-blue-tao-poon',
+    toStationId: 'mrt-purple-tao-poon',
+    walkingTimeMinutes: 3,
+    description: { th: 'เปลี่ยนสายสีน้ำเงิน-ม่วง', en: 'Blue-Purple interchange' },
+  },
 ];

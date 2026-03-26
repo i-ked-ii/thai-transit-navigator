@@ -51,7 +51,7 @@ describe('Data Integrity', () => {
   });
 
   it('should have correct number of lines', () => {
-    expect(lines.length).toBe(4); // BTS Sukhumvit, BTS Silom, MRT Blue, ARL
+    expect(lines.length).toBe(5); // BTS Sukhumvit, BTS Silom, MRT Blue, ARL, MRT Purple
   });
 
   it('should have correct line IDs matching station lineIds', () => {

@@ -1,4 +1,5 @@
 import type { Station, LineId, OperatorId } from './station';
+import type { FareByPassenger } from './fare';
 
 export interface Interchange {
   fromStationId: string;
@@ -16,8 +17,10 @@ export interface RouteSegment {
   fromStation: Station;
   toStation: Station;
   intermediateStations: Station[];
-  durationMinutes: number;
+  durationMinutes: number;     // riding time only
+  waitTimeMinutes: number;     // avg wait for next train
   fare: number;
+  fareByType: FareByPassenger;
 }
 
 export interface Transfer {
@@ -31,6 +34,7 @@ export interface FareBreakdownItem {
   lineId: LineId;
   lineName: { th: string; en: string };
   fare: number;
+  fareByType: FareByPassenger;
   fromStation: string;
   toStation: string;
 }
@@ -40,6 +44,7 @@ export interface Route {
   transfers: Transfer[];
   totalDurationMinutes: number;
   totalFare: number;
+  totalFareByType: FareByPassenger;
   totalTransfers: number;
   fareBreakdown: FareBreakdownItem[];
 }

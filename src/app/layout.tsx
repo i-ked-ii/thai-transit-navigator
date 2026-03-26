@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
 
@@ -13,6 +13,10 @@ export const metadata: Metadata = {
     default: "Thai Transit - ค้นหาเส้นทางรถไฟฟ้า",
     template: "%s | Thai Transit",
   },
+  icons: {
+    icon: "/skytrain.png",
+    apple: "/skytrain.png",
+  },
   description:
     "ค้นหาเส้นทางรถไฟฟ้าในกรุงเทพฯ BTS MRT ARL พร้อมราคาค่าโดยสาร จุดเปลี่ยนสาย และเวลาเดินทาง",
   keywords: [
@@ -25,6 +29,21 @@ export const metadata: Metadata = {
     "กรุงเทพ",
     "Bangkok transit",
   ],
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "ThaiTransit",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -48,14 +67,20 @@ function Header() {
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
         <a href="/" className="flex items-center gap-2">
-          <span className="text-xl">🚆</span>
+          <img src="/skytrain.png" alt="" width={24} height={24} className="w-6 h-6" />
           <span className="font-bold text-lg">
             Thai<span className="text-blue-600">Transit</span>
           </span>
         </a>
-        <nav className="flex gap-4 text-sm text-gray-600">
+        <nav className="flex gap-3 sm:gap-4 text-sm text-gray-600 items-center">
           <a href="/" className="hover:text-blue-600 transition-colors">
-            ค้นหาเส้นทาง
+            ค้นหา
+          </a>
+          <a href="/lines" className="hover:text-blue-600 transition-colors">
+            สายรถไฟฟ้า
+          </a>
+          <a href="/about" className="hover:text-blue-600 transition-colors">
+            เกี่ยวกับ
           </a>
         </nav>
       </div>

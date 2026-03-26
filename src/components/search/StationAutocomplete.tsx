@@ -25,6 +25,16 @@ export default function StationAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
+  // Sync query text when parent sets value (e.g. from URL param)
+  useEffect(() => {
+    if (value && query === "") {
+      setQuery(`${value.name.th} (${value.name.en})`);
+    }
+    if (!value && query !== "") {
+      // only clear if the parent explicitly clears
+    }
+  }, [value]);
+
   const handleSearch = useCallback((q: string) => {
     setQuery(q);
     if (q.trim().length === 0) {

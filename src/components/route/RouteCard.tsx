@@ -1,4 +1,5 @@
 import type { Route, RouteSegment, Transfer, Station } from "@/types";
+import type { FareByPassenger } from "@/types";
 import { getLineById } from "@/data";
 import StationExplore from "./StationExplore";
 
@@ -16,7 +17,6 @@ export default function RouteCard({ route, index }: Props) {
     return { color: line?.color ?? "#6B7280", name: line?.name.en ?? seg.lineId };
   });
 
-  // Google Maps transit direction
   const gmapsUrl =
     firstStation && lastStation
       ? `https://www.google.com/maps/dir/?api=1&origin=${firstStation.coordinates.lat},${firstStation.coordinates.lng}&destination=${lastStation.coordinates.lat},${lastStation.coordinates.lng}&travelmode=transit`
@@ -24,6 +24,22 @@ export default function RouteCard({ route, index }: Props) {
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      {/* ===== Notice: approximate time ===== */}
+      <div className="px-4 py-2 bg-amber-50 border-b border-amber-100 flex items-center gap-2 text-xs text-amber-700">
+        <span>⏱</span>
+        <span>เวลาโดยประมาณ สถานีถึงสถานี (ไม่รวมเวลาเดินเข้า/ออกสถานี)</span>
+        {gmapsUrl && (
+          <a
+            href={gmapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-auto shrink-0 underline hover:text-amber-900"
+          >
+            ดูเวลาจริง &rarr;
+          </a>
+        )}
+      </div>
+
       {/* ===== Header ===== */}
       <div className="px-4 py-3 border-b border-gray-100">
         <div className="flex items-center justify-between mb-2">
@@ -37,7 +53,7 @@ export default function RouteCard({ route, index }: Props) {
         </div>
         <div className="flex items-center gap-3 text-sm flex-wrap">
           <span className="flex items-center gap-1 text-gray-700">
-            <ClockIcon />
+            <TrainIcon />
             <strong>~{Math.round(route.totalDurationMinutes)} นาที</strong>
           </span>
           <span className="text-gray-300">|</span>
@@ -65,7 +81,6 @@ export default function RouteCard({ route, index }: Props) {
       <div className="px-4 py-3">
         {route.segments.map((segment, segIdx) => (
           <div key={segIdx}>
-            {/* Transfer between segments */}
             {segIdx > 0 && segIdx - 1 < route.transfers.length && (
               <TransferRow transfer={route.transfers[segIdx - 1]} />
             )}
@@ -78,40 +93,70 @@ export default function RouteCard({ route, index }: Props) {
         ))}
       </div>
 
-      {/* ===== Footer: Fare breakdown ===== */}
+      {/* ===== Footer: Total fares + Google Maps ===== */}
       <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1 flex-1">
-            <p className="text-xs font-medium text-gray-500 mb-1">รายละเอียดค่าโดยสาร</p>
-            {route.fareBreakdown.map((f, i) => (
-              <div key={i} className="flex items-center gap-2 text-xs">
-                <span
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: getLineById(f.lineId)?.color ?? "#6B7280" }}
-                />
-                <span className="text-gray-600">
-                  {f.lineName.th}: {f.fromStation} &rarr; {f.toStation}
-                </span>
-                <span className="font-semibold text-gray-800 ml-auto">{f.fare}฿</span>
-              </div>
+        {/* Total fare by type */}
+        <div className="flex items-center gap-3 mb-2 flex-wrap">
+          <span className="text-xs font-medium text-gray-500">รวม:</span>
+          <FareTypeBadges fareByType={route.totalFareByType} bold />
+        </div>
+
+        {/* Child notes */}
+        {route.segments.some(s => s.fareByType.childNote) && (
+          <div className="text-[10px] text-gray-400 mb-2">
+            {Array.from(new Set(route.segments.filter(s => s.fareByType.childNote).map(s => `${s.operatorId.toUpperCase()}: ${s.fareByType.childNote}`))).map((note, i) => (
+              <span key={i} className="mr-3">* {note}</span>
             ))}
-            <div className="border-t border-gray-200 pt-1 mt-1 flex justify-between text-xs">
-              <span className="font-medium text-gray-600">รวม</span>
-              <span className="font-bold text-blue-600">{route.totalFare}฿</span>
-            </div>
           </div>
+        )}
+
+        <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+          <p className="text-[10px] text-gray-400">
+            ราคาอ้างอิงจากผู้ให้บริการ อาจมีการเปลี่ยนแปลง
+          </p>
           {gmapsUrl && (
             <a
               href={gmapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
             >
               🗺️ Google Maps
             </a>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/* =====================================================
+   Fare Type Badges — inline display
+   ===================================================== */
+
+function FareTypeBadges({ fareByType, bold = false }: { fareByType: FareByPassenger; bold?: boolean }) {
+  const items = [
+    { icon: "🧑", label: "ผู้ใหญ่", value: fareByType.adult, highlight: false },
+    { icon: "🎓", label: "นร./นศ.", value: fareByType.student, highlight: fareByType.student < fareByType.adult },
+    { icon: "👴", label: "สูงอายุ", value: fareByType.senior, highlight: fareByType.senior < fareByType.adult },
+    { icon: "👶", label: "เด็ก", value: fareByType.child, highlight: true },
+  ];
+
+  return (
+    <div className="flex gap-1.5 flex-wrap">
+      {items.map((item) => (
+        <span
+          key={item.label}
+          className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] border ${
+            item.highlight && item.value < fareByType.adult
+              ? "bg-green-50 text-green-700 border-green-200"
+              : "bg-gray-50 text-gray-600 border-gray-200"
+          } ${bold ? "font-semibold" : ""}`}
+        >
+          <span>{item.icon}</span>
+          {item.value === 0 ? "ฟรี" : `${item.value}฿`}
+        </span>
+      ))}
     </div>
   );
 }
@@ -131,95 +176,140 @@ function SegmentFullTimeline({
 }) {
   const line = getLineById(segment.lineId);
   const lineColor = line?.color ?? "#6B7280";
-
-  // Build ordered station list: from → intermediates → to
-  const allStations = [
-    segment.fromStation,
-    ...segment.intermediateStations,
-    segment.toStation,
-  ];
+  const intermediates = segment.intermediateStations;
+  const hasIntermediates = intermediates.length > 0;
+  const departureContext = isFirst ? "departure" : "transfer";
+  const arrivalContext = isLast ? "arrival" : "transfer";
 
   return (
     <div>
-      {/* Line badge */}
-      <div className="flex items-center gap-2 mb-2">
-        <span
-          className="inline-block px-2 py-0.5 rounded text-[11px] font-bold text-white"
-          style={{ backgroundColor: lineColor }}
-        >
-          {line?.name.th ?? segment.lineId}
-        </span>
-        <span className="text-xs text-gray-500">
-          {allStations.length} สถานี &middot; ~{Math.round(segment.durationMinutes)} นาที
-          &middot; {segment.fare}฿
-        </span>
+      {/* ── Segment info bar (line, time, fares) — BEFORE stations ── */}
+      <div className="flex items-center justify-between bg-gray-100 px-3 py-2.5 rounded-lg flex-wrap gap-y-1.5 mb-2">
+        <div className="flex items-center gap-x-2 flex-wrap">
+          <span
+            className="inline-block px-2 py-0.5 rounded text-[11px] font-bold text-white"
+            style={{ backgroundColor: lineColor }}
+          >
+            {line?.name.th ?? segment.lineId}
+          </span>
+          <span className="text-xs text-gray-500">
+            ~{Math.round(segment.durationMinutes)} นาที
+            <span className="text-gray-300 mx-1">&middot;</span>
+            {intermediates.length + 2} สถานี
+            <span className="text-gray-300 mx-1">&middot;</span>
+            รอรถ ~{segment.waitTimeMinutes} นาที
+          </span>
+        </div>
+        <FareTypeBadges fareByType={segment.fareByType} />
       </div>
 
-      {/* Station-by-station timeline */}
-      {allStations.map((station, stIdx) => {
-        const isFrom = stIdx === 0;
-        const isTo = stIdx === allStations.length - 1;
-        const isMainStation = isFrom || isTo;
-        const isRouteStart = isFirst && isFrom;
-        const isRouteEnd = isLast && isTo;
+      {/* ── Departure station ── */}
+      <StationRow station={segment.fromStation} lineColor={lineColor} type="main" showLine context={departureContext} />
 
-        // Determine explore context
-        let exploreContext: "departure" | "intermediate" | "transfer" | "arrival" = "intermediate";
-        if (isRouteStart) exploreContext = "departure";
-        else if (isRouteEnd) exploreContext = "arrival";
-        else if (isFrom || isTo) exploreContext = "transfer";
-
-        return (
-          <div key={station.id} className="flex gap-3">
-            {/* Rail */}
+      {/* ── Collapsible intermediate stations ── */}
+      {hasIntermediates && (
+        <details className="group">
+          <summary className="flex gap-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
             <div className="flex flex-col items-center w-5 shrink-0">
-              {/* Dot */}
-              {isMainStation ? (
-                <div
-                  className="w-3.5 h-3.5 rounded-full border-[3px] border-white shrink-0"
-                  style={{ backgroundColor: lineColor, boxShadow: `0 0 0 2px ${lineColor}` }}
-                />
-              ) : (
-                <div
-                  className="w-2 h-2 rounded-full shrink-0 my-[3px]"
-                  style={{ backgroundColor: lineColor, opacity: 0.5 }}
-                />
-              )}
-              {/* Line (not after last station) */}
-              {!isTo && (
-                <div
-                  className="w-0.5 flex-1 min-h-4"
-                  style={{ backgroundColor: lineColor, opacity: isMainStation ? 1 : 0.35 }}
-                />
-              )}
+              <div className="w-0.5 flex-1" style={{ backgroundColor: lineColor, opacity: 0.35 }} />
             </div>
-
-            {/* Station content */}
-            <div className={`flex-1 ${isMainStation ? "pb-2" : "pb-1.5"}`}>
-              {isMainStation ? (
-                <>
-                  {/* Main station: bold + explore links */}
-                  <div className="flex items-baseline gap-2 -mt-1">
-                    <span className="text-sm font-semibold">{station.name.th}</span>
-                    <span className="text-xs text-gray-400">{station.name.en}</span>
-                    <span className="text-[10px] text-gray-300">{station.code}</span>
-                  </div>
-                  <StationExplore station={station} context={exploreContext} />
-                </>
-              ) : (
-                <>
-                  {/* Intermediate station: lighter + compact explore */}
-                  <div className="flex items-baseline gap-1.5 -mt-0.5">
-                    <span className="text-xs text-gray-500">{station.name.th}</span>
-                    <span className="text-[10px] text-gray-300">{station.code}</span>
-                  </div>
-                  <StationExplore station={station} context="intermediate" />
-                </>
-              )}
+            <div className="flex-1 py-1.5 flex items-center gap-2 text-xs text-gray-400 hover:text-gray-600 transition-colors select-none mt-1 mb-3">
+              <span className="group-open:rotate-90 transition-transform text-[10px]">▶</span>
+              <span>{intermediates.length} สถานีระหว่างทาง</span>
             </div>
+          </summary>
+          <div>
+            {intermediates.map((station, idx) => (
+              <StationRow
+                key={`${station.id}-mid-${idx}`}
+                station={station}
+                lineColor={lineColor}
+                type="intermediate"
+                showLine
+                context="intermediate"
+              />
+            ))}
           </div>
-        );
-      })}
+        </details>
+      )}
+
+      {/* ── Line connector when no intermediates ── */}
+      {!hasIntermediates && (
+        <div className="flex gap-3">
+          <div className="flex flex-col items-center w-5 shrink-0">
+            <div className="w-0.5 min-h-2" style={{ backgroundColor: lineColor, opacity: 0.35 }} />
+          </div>
+          <div />
+        </div>
+      )}
+
+      {/* ── Arrival station ── */}
+      <StationRow station={segment.toStation} lineColor={lineColor} type="main" showLine={false} context={arrivalContext} />
+    </div>
+  );
+}
+
+/* =====================================================
+   Single Station Row
+   ===================================================== */
+
+function StationRow({
+  station,
+  lineColor,
+  type,
+  showLine,
+  context,
+}: {
+  station: Station;
+  lineColor: string;
+  type: "main" | "intermediate";
+  showLine: boolean;
+  context: "departure" | "intermediate" | "transfer" | "arrival";
+}) {
+  const isMain = type === "main";
+
+  return (
+    <div className="flex gap-3">
+      <div className="flex flex-col items-center w-5 shrink-0">
+        {isMain ? (
+          <div
+            className="w-3.5 h-3.5 rounded-full border-[3px] border-white shrink-0"
+            style={{ backgroundColor: lineColor, boxShadow: `0 0 0 2px ${lineColor}` }}
+          />
+        ) : (
+          <div
+            className="w-2 h-2 rounded-full shrink-0 my-[3px]"
+            style={{ backgroundColor: lineColor, opacity: 0.5 }}
+          />
+        )}
+        {showLine && (
+          <div
+            className="w-0.5 flex-1 min-h-3"
+            style={{ backgroundColor: lineColor, opacity: isMain ? 1 : 0.35 }}
+          />
+        )}
+      </div>
+
+      <div className={`flex-1 ${isMain ? "pb-1" : "pb-1"}`}>
+        {isMain ? (
+          <>
+            <div className="flex items-baseline gap-2 -mt-1">
+              <span className="text-sm font-semibold">{station.name.th}</span>
+              <span className="text-xs text-gray-400">{station.name.en}</span>
+              <span className="text-[10px] text-gray-300">{station.code}</span>
+            </div>
+            <StationExplore station={station} context={context} />
+          </>
+        ) : (
+          <>
+            <div className="flex items-baseline gap-1.5 -mt-0.5">
+              <span className="text-xs text-gray-500">{station.name.th}</span>
+              <span className="text-[10px] text-gray-300">{station.name.en} &middot; {station.code}</span>
+            </div>
+            <StationExplore station={station} context="intermediate" />
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -245,7 +335,6 @@ function TransferRow({ transfer }: { transfer: Transfer }) {
             ({transfer.fromStation.name.th} &rarr; {transfer.toStation.name.th})
           </span>
         </div>
-        {/* Explore at transfer point */}
         <StationExplore station={transfer.toStation} context="transfer" />
       </div>
     </div>
@@ -256,11 +345,15 @@ function TransferRow({ transfer }: { transfer: Transfer }) {
    Icons
    ===================================================== */
 
-function ClockIcon() {
+function TrainIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-500">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 6v6l4 2" />
+      <rect x="4" y="3" width="16" height="14" rx="2" />
+      <path d="M4 11h16" />
+      <path d="M12 3v8" />
+      <circle cx="8" cy="19" r="1" />
+      <circle cx="16" cy="19" r="1" />
+      <path d="M6 17l-2 4M18 17l2 4" />
     </svg>
   );
 }
