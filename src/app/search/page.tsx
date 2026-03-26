@@ -4,6 +4,7 @@ import { buildGraph } from "@/lib/graph/builder";
 import { findRoutes } from "@/lib/routing/pathfinder";
 import { lines, interchanges, getStationById } from "@/data";
 import RouteCard from "@/components/route/RouteCard";
+import RouteCardWithTracking from "@/components/route/RouteCardWithTracking";
 import QuickLinks from "@/components/route/QuickLinks";
 import SearchFormCompact from "@/components/search/SearchFormCompact";
 
@@ -119,7 +120,9 @@ export default async function SearchPage({ searchParams }: Props) {
       ) : (
         <div className="space-y-4">
           {routes.map((route, i) => (
-            <RouteCard key={i} route={route} index={i} />
+            <RouteCardWithTracking key={i} route={route} index={i}>
+              <RouteCard route={route} index={i} />
+            </RouteCardWithTracking>
           ))}
         </div>
       )}

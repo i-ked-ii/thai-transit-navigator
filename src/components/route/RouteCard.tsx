@@ -79,7 +79,13 @@ export default function RouteCard({ route, index }: Props) {
 
       {/* ===== Full Timeline ===== */}
       <div className="px-4 py-3">
-        {route.segments.map((segment, segIdx) => (
+        {route.segments.map((segment, segIdx) => {
+          // Calculate global station offset for tracking
+          let globalOffset = 0;
+          for (let i = 0; i < segIdx; i++) {
+            globalOffset += 1 + route.segments[i].intermediateStations.length; // from + intermediates (to is next segment's from)
+          }
+          return (
           <div key={segIdx}>
             {segIdx > 0 && segIdx - 1 < route.transfers.length && (
               <TransferRow transfer={route.transfers[segIdx - 1]} />
@@ -88,9 +94,11 @@ export default function RouteCard({ route, index }: Props) {
               segment={segment}
               isFirst={segIdx === 0}
               isLast={segIdx === route.segments.length - 1}
+              globalStationOffset={globalOffset}
             />
           </div>
-        ))}
+        );
+        })}
       </div>
 
       {/* ===== Footer: Total fares + Google Maps ===== */}
@@ -169,10 +177,12 @@ function SegmentFullTimeline({
   segment,
   isFirst,
   isLast,
+  globalStationOffset = 0,
 }: {
   segment: RouteSegment;
   isFirst: boolean;
   isLast: boolean;
+  globalStationOffset?: number;
 }) {
   const line = getLineById(segment.lineId);
   const lineColor = line?.color ?? "#6B7280";
@@ -204,7 +214,7 @@ function SegmentFullTimeline({
       </div>
 
       {/* ── Departure station ── */}
-      <StationRow station={segment.fromStation} lineColor={lineColor} type="main" showLine context={departureContext} />
+      <StationRow station={segment.fromStation} lineColor={lineColor} type="main" showLine context={departureContext} globalIndex={globalStationOffset} />
 
       {/* ── Collapsible intermediate stations ── */}
       {hasIntermediates && (
@@ -227,6 +237,7 @@ function SegmentFullTimeline({
                 type="intermediate"
                 showLine
                 context="intermediate"
+                globalIndex={globalStationOffset + 1 + idx}
               />
             ))}
           </div>
@@ -244,7 +255,7 @@ function SegmentFullTimeline({
       )}
 
       {/* ── Arrival station ── */}
-      <StationRow station={segment.toStation} lineColor={lineColor} type="main" showLine={false} context={arrivalContext} />
+      <StationRow station={segment.toStation} lineColor={lineColor} type="main" showLine={false} context={arrivalContext} globalIndex={globalStationOffset + 1 + intermediates.length} />
     </div>
   );
 }
@@ -259,26 +270,28 @@ function StationRow({
   type,
   showLine,
   context,
+  globalIndex,
 }: {
   station: Station;
   lineColor: string;
   type: "main" | "intermediate";
   showLine: boolean;
   context: "departure" | "intermediate" | "transfer" | "arrival";
+  globalIndex?: number;
 }) {
   const isMain = type === "main";
 
   return (
-    <div className="flex gap-3">
+    <div className="flex gap-3" data-station-global-index={globalIndex}>
       <div className="flex flex-col items-center w-5 shrink-0">
         {isMain ? (
           <div
-            className="w-3.5 h-3.5 rounded-full border-[3px] border-white shrink-0"
+            className="station-dot w-3.5 h-3.5 rounded-full border-[3px] border-white shrink-0 transition-all duration-300"
             style={{ backgroundColor: lineColor, boxShadow: `0 0 0 2px ${lineColor}` }}
           />
         ) : (
           <div
-            className="w-2 h-2 rounded-full shrink-0 my-[3px]"
+            className="station-dot w-2 h-2 rounded-full shrink-0 my-[3px] transition-all duration-300"
             style={{ backgroundColor: lineColor, opacity: 0.5 }}
           />
         )}
@@ -294,7 +307,7 @@ function StationRow({
         {isMain ? (
           <>
             <div className="flex items-baseline gap-2 -mt-1">
-              <span className="text-sm font-semibold">{station.name.th}</span>
+              <span className="station-name text-sm font-semibold transition-colors duration-300">{station.name.th}</span>
               <span className="text-xs text-gray-400">{station.name.en}</span>
               <span className="text-[10px] text-gray-300">{station.code}</span>
             </div>
@@ -303,7 +316,7 @@ function StationRow({
         ) : (
           <>
             <div className="flex items-baseline gap-1.5 -mt-0.5">
-              <span className="text-xs text-gray-500">{station.name.th}</span>
+              <span className="station-name text-xs text-gray-500 transition-colors duration-300">{station.name.th}</span>
               <span className="text-[10px] text-gray-300">{station.name.en} &middot; {station.code}</span>
             </div>
             <StationExplore station={station} context="intermediate" />
