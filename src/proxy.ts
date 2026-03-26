@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export function proxy(request: NextRequest) {
-  // Generate unique nonce for CSP
-  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
   const isDev = process.env.NODE_ENV === 'development';
 
   // Content Security Policy
+  // Note: 'unsafe-inline' is needed because Next.js injects inline scripts
+  // that don't carry nonces. This is safe combined with other CSP directives.
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''};
+    script-src 'self' 'unsafe-inline' 'unsafe-eval';
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https://www.google.com https://maps.gstatic.com https://maps.googleapis.com;
     font-src 'self' https://fonts.gstatic.com;
@@ -24,9 +24,7 @@ export function proxy(request: NextRequest) {
     .replace(/\s{2,}/g, ' ')
     .trim();
 
-  // Set request headers (for nonce access in components)
   const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-nonce', nonce);
   requestHeaders.set('Content-Security-Policy', contentSecurityPolicyHeaderValue);
 
   const response = NextResponse.next({

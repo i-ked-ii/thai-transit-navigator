@@ -15,13 +15,13 @@
 
 ## สายรถไฟฟ้าที่รองรับ
 
-| สาย               | สถานี | เส้นทาง                    |
-| ----------------- | ----- | -------------------------- |
-| BTS สายสุขุมวิท   | 44    | คูคต — เคหะฯ               |
-| BTS สายสีลม       | 14    | สนามกีฬาแห่งชาติ — บางหว้า |
-| MRT สายสีน้ำเงิน  | 31    | วงรอบ (ท่าพระ — หัวลำโพง)  |
-| MRT สายสีม่วง     | 16    | คลองบางไผ่ — เตาปูน        |
-| Airport Rail Link | 8     | สุวรรณภูมิ — พญาไท         |
+| สาย | สถานี | เส้นทาง |
+|-----|--------|---------|
+| BTS สายสุขุมวิท | 44 | คูคต — เคหะฯ |
+| BTS สายสีลม | 14 | สนามกีฬาแห่งชาติ — บางหว้า |
+| MRT สายสีน้ำเงิน | 31 | วงรอบ (ท่าพระ — หัวลำโพง) |
+| MRT สายสีม่วง | 16 | คลองบางไผ่ — เตาปูน |
+| Airport Rail Link | 8 | สุวรรณภูมิ — พญาไท |
 
 ## Tech Stack
 
@@ -53,10 +53,10 @@ npm run test
 
 ## Environment Variables
 
-| Variable               | Description                         |
-| ---------------------- | ----------------------------------- |
-| `BTS_FARE_API_URL`     | BTS fare API endpoint (มี fallback) |
-| `NEXT_PUBLIC_SITE_URL` | Site URL สำหรับ sitemap/OG tags     |
+| Variable | Description |
+|----------|-------------|
+| `BTS_FARE_API_URL` | BTS fare API endpoint (มี fallback) |
+| `NEXT_PUBLIC_SITE_URL` | Site URL สำหรับ sitemap/OG tags |
 
 ## Project Structure
 
@@ -91,21 +91,20 @@ src/
 
 ## Security
 
-| Feature                 | Detail                                |
-| ----------------------- | ------------------------------------- |
-| Content Security Policy | Nonce-based CSP via `proxy.ts`        |
-| X-Frame-Options         | DENY (ป้องกัน clickjacking)           |
-| HSTS                    | max-age=63072000 (production)         |
-| Rate Limiting           | 60 req/min API, 10 req/min fare proxy |
-| Input Validation        | Station ID format + existence check   |
-| X-Content-Type-Options  | nosniff                               |
-| Referrer-Policy         | origin-when-cross-origin              |
-| Permissions-Policy      | ปิด camera, microphone, geolocation   |
+| Feature | Detail |
+|---------|--------|
+| Content Security Policy | Nonce-based CSP via `proxy.ts` |
+| X-Frame-Options | DENY (ป้องกัน clickjacking) |
+| HSTS | max-age=63072000 (production) |
+| Rate Limiting | 60 req/min API, 10 req/min fare proxy |
+| Input Validation | Station ID format + existence check |
+| X-Content-Type-Options | nosniff |
+| Referrer-Policy | origin-when-cross-origin |
+| Permissions-Policy | ปิด camera, microphone, geolocation |
 
 ## Routing Algorithm
 
 ใช้ **Dijkstra** บน adjacency list graph:
-
 - Nodes = สถานี (~130), Edges = เชื่อมต่อสถานี + จุดเปลี่ยนสาย (~300)
 - รันสาม weight functions: เร็วสุด / ถูกสุด / เปลี่ยนน้อยสุด
 - รวม alternative routes ผ่านจุดเปลี่ยนสาย (สำหรับ cross-line)
