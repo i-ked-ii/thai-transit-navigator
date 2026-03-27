@@ -2,6 +2,7 @@ import type { Route, RouteSegment, Transfer, Station } from "@/types";
 import type { FareByPassenger } from "@/types";
 import { getLineById } from "@/data";
 import StationExplore from "./StationExplore";
+import { T } from "@/i18n";
 
 interface Props {
   route: Route;
@@ -27,7 +28,7 @@ export default function RouteCard({ route, index }: Props) {
       {/* ===== Notice: approximate time ===== */}
       <div className="px-4 py-2 bg-amber-50 border-b border-amber-100 flex items-center gap-2 text-xs text-amber-700">
         <span>⏱</span>
-        <span>เวลาโดยประมาณ สถานีถึงสถานี (ไม่รวมเวลาเดินเข้า/ออกสถานี)</span>
+        <span><T k="route.approximateTime" /></span>
         {gmapsUrl && (
           <a
             href={gmapsUrl}
@@ -35,7 +36,7 @@ export default function RouteCard({ route, index }: Props) {
             rel="noopener noreferrer"
             className="ml-auto shrink-0 underline hover:text-amber-900"
           >
-            ดูเวลาจริง &rarr;
+            <T k="route.viewRealTime" /> &rarr;
           </a>
         )}
       </div>
@@ -44,23 +45,23 @@ export default function RouteCard({ route, index }: Props) {
       <div className="px-4 py-3 border-b border-gray-100">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-            เส้นทาง {index + 1}
+            <T k="route.routeNumber" params={{ n: index + 1 }} />
           </span>
           <div className="text-right">
             <span className="text-xl font-bold text-blue-600">{route.totalFare}</span>
-            <span className="text-sm text-gray-500 ml-1">บาท</span>
+            <span className="text-sm text-gray-500 ml-1"><T k="route.baht" /></span>
           </div>
         </div>
         <div className="flex items-center gap-3 text-sm flex-wrap">
           <span className="flex items-center gap-1 text-gray-700">
             <TrainIcon />
-            <strong>~{Math.round(route.totalDurationMinutes)} นาที</strong>
+            <strong><T k="route.minutes" params={{ n: Math.round(route.totalDurationMinutes) }} /></strong>
           </span>
           <span className="text-gray-300">|</span>
           <span className="text-gray-500">
             {route.totalTransfers === 0
-              ? "ไม่ต้องเปลี่ยนสาย"
-              : `เปลี่ยน ${route.totalTransfers} ครั้ง`}
+              ? <T k="route.noTransfer" />
+              : <T k="route.transfers" params={{ n: route.totalTransfers }} />}
           </span>
           <span className="text-gray-300">|</span>
           <div className="flex gap-1">
@@ -105,7 +106,7 @@ export default function RouteCard({ route, index }: Props) {
       <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
         {/* Total fare by type */}
         <div className="flex items-center gap-3 mb-2 flex-wrap">
-          <span className="text-xs font-medium text-gray-500">รวม:</span>
+          <span className="text-xs font-medium text-gray-500"><T k="route.total" /></span>
           <FareTypeBadges fareByType={route.totalFareByType} bold />
         </div>
 
@@ -120,7 +121,7 @@ export default function RouteCard({ route, index }: Props) {
 
         <div className="flex items-center justify-between pt-2 border-t border-gray-200">
           <p className="text-[10px] text-gray-400">
-            ราคาอ้างอิงจากผู้ให้บริการ อาจมีการเปลี่ยนแปลง
+            <T k="route.priceDisclaimer" />
           </p>
           {gmapsUrl && (
             <a
@@ -144,17 +145,17 @@ export default function RouteCard({ route, index }: Props) {
 
 function FareTypeBadges({ fareByType, bold = false }: { fareByType: FareByPassenger; bold?: boolean }) {
   const items = [
-    { icon: "🧑", label: "ผู้ใหญ่", value: fareByType.adult, highlight: false },
-    { icon: "🎓", label: "นร./นศ.", value: fareByType.student, highlight: fareByType.student < fareByType.adult },
-    { icon: "👴", label: "สูงอายุ", value: fareByType.senior, highlight: fareByType.senior < fareByType.adult },
-    { icon: "👶", label: "เด็ก", value: fareByType.child, highlight: true },
+    { icon: "🧑", labelKey: "passenger.adult", value: fareByType.adult, highlight: false },
+    { icon: "🎓", labelKey: "passenger.student", value: fareByType.student, highlight: fareByType.student < fareByType.adult },
+    { icon: "👴", labelKey: "passenger.senior", value: fareByType.senior, highlight: fareByType.senior < fareByType.adult },
+    { icon: "👶", labelKey: "passenger.child", value: fareByType.child, highlight: true },
   ];
 
   return (
     <div className="flex gap-1.5 flex-wrap">
       {items.map((item) => (
         <span
-          key={item.label}
+          key={item.labelKey}
           className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] border ${
             item.highlight && item.value < fareByType.adult
               ? "bg-green-50 text-green-700 border-green-200"
@@ -162,7 +163,7 @@ function FareTypeBadges({ fareByType, bold = false }: { fareByType: FareByPassen
           } ${bold ? "font-semibold" : ""}`}
         >
           <span>{item.icon}</span>
-          {item.value === 0 ? "ฟรี" : `${item.value}฿`}
+          {item.value === 0 ? <T k="route.free" /> : `${item.value}฿`}
         </span>
       ))}
     </div>
@@ -203,11 +204,11 @@ function SegmentFullTimeline({
             {line?.name.th ?? segment.lineId}
           </span>
           <span className="text-xs text-gray-500">
-            ~{Math.round(segment.durationMinutes)} นาที
+            <T k="route.minutes" params={{ n: Math.round(segment.durationMinutes) }} />
             <span className="text-gray-300 mx-1">&middot;</span>
-            {intermediates.length + 2} สถานี
+            <T k="route.stations" params={{ n: intermediates.length + 2 }} />
             <span className="text-gray-300 mx-1">&middot;</span>
-            รอรถ ~{segment.waitTimeMinutes} นาที
+            <T k="route.waitTime" params={{ n: segment.waitTimeMinutes }} />
           </span>
         </div>
         <FareTypeBadges fareByType={segment.fareByType} />
@@ -225,7 +226,7 @@ function SegmentFullTimeline({
             </div>
             <div className="flex-1 py-1.5 flex items-center gap-2 text-xs text-gray-400 hover:text-gray-600 transition-colors select-none mt-1 mb-3">
               <span className="group-open:rotate-90 transition-transform text-[10px]">▶</span>
-              <span>{intermediates.length} สถานีระหว่างทาง</span>
+              <span><T k="route.intermediateStations" params={{ n: intermediates.length }} /></span>
             </div>
           </summary>
           <div>
@@ -343,7 +344,7 @@ function TransferRow({ transfer }: { transfer: Transfer }) {
       </div>
       <div className="flex-1">
         <div className="text-xs text-amber-700 bg-amber-50 px-2.5 py-1.5 rounded-md inline-block">
-          เปลี่ยนสาย &middot; เดิน ~{transfer.walkingTimeMinutes} นาที
+          <T k="route.transfer" params={{ n: transfer.walkingTimeMinutes }} />
           <span className="text-amber-500 ml-1">
             ({transfer.fromStation.name.th} &rarr; {transfer.toStation.name.th})
           </span>

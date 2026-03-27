@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/i18n";
 
 interface Props {
   fromId: string;
@@ -16,6 +18,7 @@ export default function SearchFormCompact({
   destinationName,
 }: Props) {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const handleSwap = () => {
     router.push(`/search?from=${toId}&to=${fromId}`);
@@ -36,19 +39,19 @@ export default function SearchFormCompact({
       <button
         onClick={handleSwap}
         className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors text-gray-400 hover:text-gray-600 shrink-0"
-        aria-label="สลับเส้นทาง"
-        title="สลับต้นทาง-ปลายทาง"
+        aria-label={t("search.swapRoute")}
+        title={t("search.swapOriginDest")}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
         </svg>
       </button>
-      <a
+      <Link
         href="/"
         className="px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors shrink-0"
       >
-        ค้นหาใหม่
-      </a>
+        {t("search.newSearch")}
+      </Link>
     </div>
   );
 }

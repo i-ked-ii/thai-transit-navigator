@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { lines, getStationById, getLineById } from "@/data";
 import { interchanges } from "@/data";
+import { T } from "@/i18n";
 
 export const metadata: Metadata = {
   title: "สายรถไฟฟ้าทั้งหมด",
@@ -14,16 +15,15 @@ export default function LinesPage() {
     <div className="max-w-3xl mx-auto px-4 py-6">
       <nav className="text-xs text-gray-400 mb-4">
         <Link href="/" className="hover:text-blue-600">
-          หน้าแรก
+          <T k="nav.home" />
         </Link>
         <span className="mx-1">/</span>
-        <span className="text-gray-600">สายรถไฟฟ้า</span>
+        <span className="text-gray-600"><T k="nav.lines" /></span>
       </nav>
 
-      <h1 className="text-2xl font-bold mb-1">สายรถไฟฟ้าทั้งหมด</h1>
+      <h1 className="text-2xl font-bold mb-1"><T k="lines.allLines" /></h1>
       <p className="text-sm text-gray-500 mb-6">
-        {lines.length} สาย &middot;{" "}
-        {lines.reduce((sum, l) => sum + l.stationIds.length, 0)} สถานี
+        <T k="lines.summary" params={{ lines: lines.length, stations: lines.reduce((sum, l) => sum + l.stationIds.length, 0) }} />
       </p>
 
       <div className="space-y-3">
@@ -62,10 +62,10 @@ export default function LinesPage() {
                     <div>
                       <h2 className="font-semibold text-sm">{line.name.th}</h2>
                       <p className="text-xs text-gray-400">
-                        {line.operator.th} &middot; {stations.length} สถานี
-                        &middot; รถมาทุก ~{line.averageIntervalMinutes} นาที
+                        {line.operator.th} &middot; <T k="lines.stationCount" params={{ n: stations.length }} />
+                        {" "}&middot; <T k="lines.trainEvery" params={{ n: line.averageIntervalMinutes }} />
                         {line.isLoop && (
-                          <span className="text-blue-500 ml-1">(วงรอบ)</span>
+                          <span className="text-blue-500 ml-1">(<T k="lines.loop" />)</span>
                         )}
                       </p>
                     </div>
@@ -153,7 +153,7 @@ export default function LinesPage() {
                           {connectingLines.length > 0 && (
                             <div className="flex gap-1 mt-0.5">
                               <span className="text-[10px] text-gray-400">
-                                เปลี่ยน:
+                                <T k="lines.interchange" />
                               </span>
                               {connectingLines.map(
                                 (cl, j) =>

@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { allStations, getStationBySlug, getLineById, getStationsByLine, lines } from '@/data';
 import { interchanges } from '@/data';
 import StationExplore from '@/components/route/StationExplore';
+import { T } from '@/i18n';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -70,7 +71,7 @@ export default async function StationPage({ params }: Props) {
 
       {/* Breadcrumb */}
       <nav className="text-xs text-gray-400 mb-4">
-        <Link href="/" className="hover:text-blue-600">หน้าแรก</Link>
+        <Link href="/" className="hover:text-blue-600"><T k="nav.home" /></Link>
         <span className="mx-1">/</span>
         {line && (
           <>
@@ -128,7 +129,7 @@ export default async function StationPage({ params }: Props) {
       {/* Interchanges */}
       {stationInterchanges.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">จุดเปลี่ยนสาย</h2>
+          <h2 className="text-sm font-semibold text-gray-700 mb-3"><T k="station.interchanges" /></h2>
           <div className="space-y-2">
             {stationInterchanges.map((ic, i) => {
               const otherId = ic.fromStationId === station.id ? ic.toStationId : ic.fromStationId;
@@ -145,7 +146,7 @@ export default async function StationPage({ params }: Props) {
                     </span>
                   )}
                   <span className="text-gray-600">
-                    {other?.name.th} — เดิน ~{ic.walkingTimeMinutes} นาที
+                    {other?.name.th} — <T k="station.walkMinutes" params={{ n: ic.walkingTimeMinutes }} />
                   </span>
                 </div>
               );
@@ -156,18 +157,18 @@ export default async function StationPage({ params }: Props) {
 
       {/* Explore nearby */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">สถานที่ใกล้เคียง</h2>
+        <h2 className="text-sm font-semibold text-gray-700 mb-3"><T k="station.nearbyPlaces" /></h2>
         <StationExplore station={station} context="arrival" />
       </div>
 
       {/* Quick search from this station */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">ค้นหาเส้นทางจากสถานีนี้</h2>
+        <h2 className="text-sm font-semibold text-gray-700 mb-3"><T k="station.searchFromHere" /></h2>
         <Link
           href={`/?from=${station.id}`}
           className="inline-block px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
         >
-          ค้นหาเส้นทางจาก{station.name.th}
+          <T k="station.searchFrom" params={{ station: station.name.th }} />
         </Link>
       </div>
     </div>

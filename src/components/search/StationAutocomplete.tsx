@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import type { Station } from "@/types";
 import { searchStations } from "@/lib/search";
 import { allStations, getLineById } from "@/data";
+import { useTranslation } from "@/i18n";
 
 interface Props {
   label: string;
@@ -18,25 +19,24 @@ export default function StationAutocomplete({
   value,
   onChange,
 }: Props) {
-  const [query, setQuery] = useState("");
+  const { t, locale } = useTranslation();
+  const [userQuery, setUserQuery] = useState<string | null>(null); // null = show value label
   const [results, setResults] = useState<Station[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  // Sync query text when parent sets value (e.g. from URL param)
-  useEffect(() => {
-    if (value && query === "") {
-      setQuery(`${value.name.th} (${value.name.en})`);
-    }
-    if (!value && query !== "") {
-      // only clear if the parent explicitly clears
-    }
-  }, [value]);
+  const stationLabel = useCallback(
+    (s: Station) => locale === "th" ? `${s.name.th} (${s.name.en})` : `${s.name.en} (${s.name.th})`,
+    [locale],
+  );
+
+  // Derive display text: if user is typing show their input, otherwise show selected value
+  const query = userQuery ?? (value ? stationLabel(value) : "");
 
   const handleSearch = useCallback((q: string) => {
-    setQuery(q);
+    setUserQuery(q);
     if (q.trim().length === 0) {
       setResults([]);
       setIsOpen(false);
@@ -51,11 +51,11 @@ export default function StationAutocomplete({
   const selectStation = useCallback(
     (station: Station) => {
       onChange(station);
-      setQuery(`${station.name.th} (${station.name.en})`);
+      setUserQuery(null); // reset to derived label
       setIsOpen(false);
       setResults([]);
     },
-    [onChange]
+    [onChange],
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -125,11 +125,11 @@ export default function StationAutocomplete({
           type="button"
           onClick={() => {
             onChange(null);
-            setQuery("");
+            setUserQuery(null);
             inputRef.current?.focus();
           }}
           className="absolute right-3 top-9 text-gray-400 hover:text-gray-600"
-          aria-label="ล้าง"
+          aria-label={t("search.clear")}
         >
           ✕
         </button>

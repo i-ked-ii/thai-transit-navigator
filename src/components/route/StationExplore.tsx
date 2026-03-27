@@ -1,4 +1,5 @@
 import type { Station } from "@/types";
+import { T } from "@/i18n";
 
 interface Props {
   station: Station;
@@ -7,7 +8,7 @@ interface Props {
 
 interface ExploreLink {
   icon: string;
-  label: string;
+  labelKey: string;
   url: string;
   color: string;
 }
@@ -22,19 +23,19 @@ function buildLinks(station: Station, context: string): ExploreLink[] {
     return [
       {
         icon: "🗺️",
-        label: "Map",
+        labelKey: "explore.map",
         url: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
         color: "bg-gray-50 text-gray-500 hover:bg-gray-100",
       },
       {
         icon: "🍜",
-        label: "อาหาร",
+        labelKey: "explore.food",
         url: `https://www.google.com/maps/search/restaurant+near+${q}/@${lat},${lng},15z`,
         color: "bg-gray-50 text-gray-500 hover:bg-gray-100",
       },
       {
         icon: "📍",
-        label: "สถานที่",
+        labelKey: "explore.places",
         url: `https://www.google.com/maps/search/attraction+near+${q}/@${lat},${lng},15z`,
         color: "bg-gray-50 text-gray-500 hover:bg-gray-100",
       },
@@ -45,25 +46,25 @@ function buildLinks(station: Station, context: string): ExploreLink[] {
   const links: ExploreLink[] = [
     {
       icon: "🗺️",
-      label: "Map",
+      labelKey: "explore.map",
       url: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
       color: "bg-blue-50 text-blue-700 hover:bg-blue-100",
     },
     {
       icon: "🍜",
-      label: "อาหาร",
+      labelKey: "explore.food",
       url: `https://www.google.com/maps/search/restaurant+near+${q}/@${lat},${lng},15z`,
       color: "bg-orange-50 text-orange-700 hover:bg-orange-100",
     },
     {
       icon: "☕",
-      label: "คาเฟ่",
+      labelKey: "explore.cafe",
       url: `https://www.google.com/maps/search/cafe+near+${q}/@${lat},${lng},15z`,
       color: "bg-amber-50 text-amber-700 hover:bg-amber-100",
     },
     {
       icon: "📍",
-      label: "สถานที่",
+      labelKey: "explore.places",
       url: `https://www.google.com/maps/search/attraction+near+${q}/@${lat},${lng},15z`,
       color: "bg-rose-50 text-rose-700 hover:bg-rose-100",
     },
@@ -73,13 +74,13 @@ function buildLinks(station: Station, context: string): ExploreLink[] {
     links.push(
       {
         icon: "🏨",
-        label: "โรงแรม",
+        labelKey: "explore.hotel",
         url: `https://www.google.com/maps/search/hotel+near+${q}/@${lat},${lng},15z`,
         color: "bg-purple-50 text-purple-700 hover:bg-purple-100",
       },
       {
         icon: "🛍️",
-        label: "ช้อปปิ้ง",
+        labelKey: "explore.shopping",
         url: `https://www.google.com/maps/search/shopping+mall+near+${q}/@${lat},${lng},15z`,
         color: "bg-pink-50 text-pink-700 hover:bg-pink-100",
       },
@@ -89,7 +90,7 @@ function buildLinks(station: Station, context: string): ExploreLink[] {
   if (context === "arrival") {
     links.push({
       icon: "🚗",
-      label: "เช่ารถ",
+      labelKey: "explore.carRental",
       url: `https://www.google.com/search?q=${encodeURIComponent(`rent a car near ${name} station Bangkok`)}`,
       color: "bg-teal-50 text-teal-700 hover:bg-teal-100",
     });
@@ -105,15 +106,14 @@ export default function StationExplore({ station, context = "intermediate" }: Pr
     <div className="flex flex-wrap gap-1 mt-1">
       {links.map((link) => (
         <a
-          key={link.label}
+          key={link.labelKey}
           href={link.url}
           target="_blank"
           rel="noopener noreferrer"
           className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium transition-colors ${link.color}`}
-          title={`${link.label} ใกล้สถานี${station.name.th}`}
         >
           <span className="text-[10px]">{link.icon}</span>
-          {link.label}
+          <T k={link.labelKey} />
         </a>
       ))}
     </div>

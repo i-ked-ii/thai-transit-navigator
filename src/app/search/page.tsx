@@ -7,6 +7,7 @@ import RouteCard from "@/components/route/RouteCard";
 import RouteCardWithTracking from "@/components/route/RouteCardWithTracking";
 import QuickLinks from "@/components/route/QuickLinks";
 import SearchFormCompact from "@/components/search/SearchFormCompact";
+import { T } from "@/i18n";
 
 const graph = buildGraph(lines, interchanges);
 
@@ -36,9 +37,9 @@ export default async function SearchPage({ searchParams }: Props) {
   if (!from || !to) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
-        <p className="text-gray-500">กรุณาเลือกสถานีต้นทางและปลายทาง</p>
+        <p className="text-gray-500"><T k="searchResult.selectStations" /></p>
         <Link href="/" className="inline-block mt-4 text-blue-600 hover:text-blue-800">
-          &larr; กลับไปค้นหา
+          &larr; <T k="searchResult.backToSearch" />
         </Link>
       </div>
     );
@@ -50,9 +51,9 @@ export default async function SearchPage({ searchParams }: Props) {
   if (!origin || !destination) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
-        <p className="text-red-500">ไม่พบสถานีที่ระบุ</p>
+        <p className="text-red-500"><T k="searchResult.stationNotFound" /></p>
         <Link href="/" className="inline-block mt-4 text-blue-600 hover:text-blue-800">
-          &larr; กลับไปค้นหา
+          &larr; <T k="searchResult.backToSearch" />
         </Link>
       </div>
     );
@@ -92,14 +93,14 @@ export default async function SearchPage({ searchParams }: Props) {
           className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
         >
           <span>🗺️</span>
-          ดูใน Google Maps
+          <T k="searchResult.viewGoogleMaps" />
         </a>
       </div>
 
       {/* Route count summary */}
       {routes.length > 0 && (
         <p className="text-sm text-gray-500 mb-3">
-          พบ <strong className="text-gray-700">{routes.length}</strong> เส้นทาง
+          <T k="searchResult.foundRoutes" params={{ count: routes.length }} />
         </p>
       )}
 
@@ -107,14 +108,14 @@ export default async function SearchPage({ searchParams }: Props) {
       {routes.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
           <p className="text-2xl mb-2">🚫</p>
-          <p className="text-gray-500">ไม่พบเส้นทางรถไฟฟ้าระหว่างสถานีที่เลือก</p>
+          <p className="text-gray-500"><T k="searchResult.noRoutes" /></p>
           <a
             href={googleMapsTransitUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block mt-3 text-sm text-blue-600 hover:text-blue-800"
           >
-            ลองค้นหาใน Google Maps &rarr;
+            <T k="searchResult.tryGoogleMaps" /> &rarr;
           </a>
         </div>
       ) : (
@@ -135,9 +136,7 @@ export default async function SearchPage({ searchParams }: Props) {
       {/* Disclaimer */}
       <div className="mt-6 mb-4 text-center">
         <p className="text-[11px] text-gray-400">
-          ราคาค่าโดยสารอ้างอิงจากผู้ให้บริการ อาจมีการเปลี่ยนแปลง &middot;
-          เวลาเดินทางเป็นค่าประมาณ &middot;
-          ข้อมูลบริการใกล้สถานีจาก Google
+          <T k="searchResult.disclaimer" />
         </p>
       </div>
     </div>

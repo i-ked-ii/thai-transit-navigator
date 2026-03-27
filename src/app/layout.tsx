@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
+import { LocaleProvider, T } from "@/i18n";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const notoSansThai = Noto_Sans_Thai({
   variable: "--font-noto-thai",
@@ -54,9 +56,11 @@ export default function RootLayout({
   return (
     <html lang="th" className={`${notoSansThai.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-[family-name:var(--font-noto-thai)] bg-gray-50 text-gray-900">
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        <LocaleProvider>
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </LocaleProvider>
       </body>
     </html>
   );
@@ -74,14 +78,15 @@ function Header() {
         </a>
         <nav className="flex gap-3 sm:gap-4 text-sm text-gray-600 items-center">
           <a href="/" className="hover:text-blue-600 transition-colors">
-            ค้นหา
+            <T k="nav.search" />
           </a>
           <a href="/lines" className="hover:text-blue-600 transition-colors">
-            สายรถไฟฟ้า
+            <T k="nav.lines" />
           </a>
           <a href="/about" className="hover:text-blue-600 transition-colors">
-            เกี่ยวกับ
+            <T k="nav.about" />
           </a>
+          <LanguageSwitcher />
         </nav>
       </div>
     </header>
@@ -93,11 +98,10 @@ function Footer() {
     <footer className="border-t border-gray-200 bg-white py-6 mt-auto">
       <div className="max-w-5xl mx-auto px-4 text-center text-sm text-gray-500">
         <p>
-          ข้อมูลราคาค่าโดยสารอ้างอิงจากผู้ให้บริการโดยตรง อาจมีการเปลี่ยนแปลง
+          <T k="footer.fareDisclaimer" />
         </p>
         <p className="mt-1">
-          Thai Transit &copy; {new Date().getFullYear()} &mdash;
-          ค้นหาเส้นทางรถไฟฟ้า BTS MRT ARL
+          <T k="footer.copyright" params={{ year: String(new Date().getFullYear()) }} />
         </p>
       </div>
     </footer>

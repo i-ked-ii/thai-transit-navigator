@@ -5,10 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { Station } from "@/types";
 import { getStationById } from "@/data";
 import StationAutocomplete from "./StationAutocomplete";
+import { useTranslation } from "@/i18n";
 
 export default function SearchForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
   const [origin, setOrigin] = useState<Station | null>(null);
   const [destination, setDestination] = useState<Station | null>(null);
 
@@ -53,14 +55,14 @@ export default function SearchForm() {
         <div className="flex gap-2 items-center">
           <div className="flex-1 space-y-3">
             <StationAutocomplete
-              label="ต้นทาง"
-              placeholder="สถานี เช่น สยาม, Asok, N8..."
+              label={t("search.origin")}
+              placeholder={t("search.originPlaceholder")}
               value={origin}
               onChange={setOrigin}
             />
             <StationAutocomplete
-              label="ปลายทาง"
-              placeholder="สถานี เช่น หมอชิต, Hua Lamphong..."
+              label={t("search.destination")}
+              placeholder={t("search.destinationPlaceholder")}
               value={destination}
               onChange={setDestination}
             />
@@ -69,7 +71,7 @@ export default function SearchForm() {
             type="button"
             onClick={handleSwap}
             className="mt-5 p-2.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors text-gray-400 hover:text-gray-600 shrink-0"
-            aria-label="สลับต้นทางกับปลายทาง"
+            aria-label={t("search.swapStations")}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
@@ -82,7 +84,7 @@ export default function SearchForm() {
           disabled={!origin || !destination}
           className="w-full py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-base"
         >
-          ค้นหาเส้นทาง
+          {t("search.searchRoute")}
         </button>
       </div>
     </div>

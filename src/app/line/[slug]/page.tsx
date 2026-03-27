@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { lines, getStationById, getLineById } from '@/data';
 import { interchanges } from '@/data';
+import { T } from '@/i18n';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -40,7 +41,7 @@ export default async function LinePage({ params }: Props) {
     <div className="max-w-3xl mx-auto px-4 py-6">
       {/* Breadcrumb */}
       <nav className="text-xs text-gray-400 mb-4">
-        <Link href="/" className="hover:text-blue-600">หน้าแรก</Link>
+        <Link href="/" className="hover:text-blue-600"><T k="nav.home" /></Link>
         <span className="mx-1">/</span>
         <span className="text-gray-600">{line.name.th}</span>
       </nav>
@@ -60,10 +61,10 @@ export default async function LinePage({ params }: Props) {
             {line.name.th}
           </h1>
           <div className="flex gap-4 mt-3 text-sm text-gray-500">
-            <span>ผู้ให้บริการ: {line.operator.th}</span>
-            <span>{stations.length} สถานี</span>
-            <span>รถมาทุก ~{line.averageIntervalMinutes} นาที</span>
-            {line.isLoop && <span className="text-blue-600">วงรอบ</span>}
+            <span><T k="lines.operator" /> {line.operator.th}</span>
+            <span><T k="lines.stationCount" params={{ n: stations.length }} /></span>
+            <span><T k="lines.trainEvery" params={{ n: line.averageIntervalMinutes }} /></span>
+            {line.isLoop && <span className="text-blue-600"><T k="lines.loop" /></span>}
           </div>
         </div>
       </div>
@@ -71,7 +72,7 @@ export default async function LinePage({ params }: Props) {
       {/* Station list */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6">
         <div className="px-5 py-3 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-700">สถานีทั้งหมด</h2>
+          <h2 className="text-sm font-semibold text-gray-700"><T k="lines.allStations" /></h2>
         </div>
         <div className="divide-y divide-gray-50">
           {stations.map((station, i) => {
