@@ -158,6 +158,7 @@ const en: Record<string, string> = {
   "tracking.start": "Track my journey (GPS)",
   "tracking.active": "Tracking",
   "tracking.gpsWeak": "Weak GPS signal",
+  "tracking.gpsSearching": "Searching for GPS signal",
   "tracking.near": "Near {station}",
   "tracking.stop": "Stop",
   "tracking.noGps": "Browser does not support GPS",

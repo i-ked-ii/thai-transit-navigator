@@ -158,6 +158,7 @@ const zh: Record<string, string> = {
   "tracking.start": "追踪我的行程 (GPS)",
   "tracking.active": "追踪中",
   "tracking.gpsWeak": "GPS 信号弱",
+  "tracking.gpsSearching": "正在搜索 GPS 信号",
   "tracking.near": "靠近 {station}",
   "tracking.stop": "停止",
   "tracking.noGps": "浏览器不支持 GPS",

@@ -158,6 +158,7 @@ const ja: Record<string, string> = {
   "tracking.start": "旅程を追跡 (GPS)",
   "tracking.active": "追跡中",
   "tracking.gpsWeak": "GPS 信号が弱い",
+  "tracking.gpsSearching": "GPS 信号を検索中",
   "tracking.near": "{station} 付近",
   "tracking.stop": "停止",
   "tracking.noGps": "ブラウザが GPS をサポートしていません",

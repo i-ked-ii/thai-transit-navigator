@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { Route, Station } from "@/types";
 import { useTranslation } from "@/i18n";
 
 interface Props {
   route: Route;
   index: number;
-  children: React.ReactNode; // The server-rendered RouteCard content
+  children: React.ReactNode;
 }
 
 // Haversine distance in meters
@@ -21,7 +21,7 @@ function distMeters(lat1: number, lng1: number, lat2: number, lng2: number): num
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Project a point onto a line segment, return fraction [0, 1] along the segment
+// Project a point onto a line segment, return fraction [0, 1]
 function projectOntoSegment(
   lat: number, lng: number,
   lat1: number, lng1: number,
@@ -35,7 +35,6 @@ function projectOntoSegment(
   return Math.max(0, Math.min(1, t));
 }
 
-// Compute cumulative route distances (meters) for each station
 function computeCumulativeDistances(stations: Station[]): number[] {
   const cum: number[] = [0];
   for (let i = 1; i < stations.length; i++) {
@@ -46,21 +45,21 @@ function computeCumulativeDistances(stations: Station[]): number[] {
   return cum;
 }
 
-// Given GPS coords, find the progress along the route as a continuous value
-// Returns a float where integer part = station index, fractional part = progress to next
+/**
+ * Find the best matching progress along the route.
+ * When `allowBackward` is true, the full route is scanned (used when GPS accuracy improves significantly).
+ * Otherwise, enforces monotonic forward progress from `minProgress`.
+ */
 function computeRouteProgress(
   lat: number, lng: number,
   stations: Station[],
-  cumDist: number[],
-  minProgress: number, // monotonic: can't go backward
+  minProgress: number,
+  allowBackward: boolean,
 ): number {
-  const minIdx = Math.floor(minProgress);
-  let bestProgress = minProgress;
+  let bestProgress = allowBackward ? 0 : minProgress;
   let bestDist = Infinity;
 
-  // Only check from current minimum station onward (can't go backward)
-  // But allow looking 1 station back for edge cases
-  const startIdx = Math.max(0, minIdx - 1);
+  const startIdx = allowBackward ? 0 : Math.max(0, Math.floor(minProgress) - 1);
 
   for (let i = startIdx; i < stations.length - 1; i++) {
     const s1 = stations[i].coordinates;
@@ -69,37 +68,40 @@ function computeRouteProgress(
     const projLat = s1.lat + frac * (s2.lat - s1.lat);
     const projLng = s1.lng + frac * (s2.lng - s1.lng);
     const d = distMeters(lat, lng, projLat, projLng);
-
     const progress = i + frac;
-    // Only accept if it's forward progress (or very close to current)
-    if (progress >= minProgress - 0.5 && d < bestDist) {
-      bestDist = d;
-      bestProgress = Math.max(progress, minProgress); // enforce monotonic
+
+    if (allowBackward) {
+      if (d < bestDist) { bestDist = d; bestProgress = progress; }
+    } else {
+      if (progress >= minProgress - 0.5 && d < bestDist) {
+        bestDist = d;
+        bestProgress = Math.max(progress, minProgress);
+      }
     }
   }
 
-  // Also check last station
-  const lastDist = distMeters(lat, lng, stations[stations.length - 1].coordinates.lat, stations[stations.length - 1].coordinates.lng);
-  if (lastDist < bestDist && stations.length - 1 >= minProgress) {
-    bestProgress = stations.length - 1;
+  // Check last station
+  const last = stations[stations.length - 1].coordinates;
+  const lastDist = distMeters(lat, lng, last.lat, last.lng);
+  if (lastDist < bestDist) {
+    const lastProg = stations.length - 1;
+    if (allowBackward || lastProg >= minProgress) {
+      bestProgress = lastProg;
+    }
   }
 
   return bestProgress;
 }
 
-// Compute cumulative travel time (minutes) for each station
 function computeCumulativeTimes(route: Route, stationCount: number): number[] {
   const times: number[] = [0];
-  let offset = 0;
   for (const seg of route.segments) {
     const segStations = seg.intermediateStations.length + 2;
     const timePerStation = seg.durationMinutes / (segStations - 1);
     for (let i = 1; i < segStations; i++) {
       times.push(times[times.length - 1] + timePerStation);
     }
-    offset += segStations;
   }
-  // Pad if needed
   while (times.length < stationCount) {
     times.push(times[times.length - 1]);
   }
@@ -109,50 +111,52 @@ function computeCumulativeTimes(route: Route, stationCount: number): number[] {
 export default function RouteCardWithTracking({ route, children }: Props) {
   const { t } = useTranslation();
   const [tracking, setTracking] = useState(false);
-  const [progress, setProgress] = useState(-1); // continuous route progress
+  const [progress, setProgress] = useState(-1);
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
+  const [gpsWaiting, setGpsWaiting] = useState(false); // waiting for accurate signal
   const [error, setError] = useState<string | null>(null);
   const [notified, setNotified] = useState(false);
   const [gpsStale, setGpsStale] = useState(false);
   const watchRef = useRef<number | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
-  const progressRef = useRef(-1); // for monotonic progress in callback
+  const progressRef = useRef(-1);
+  const progressAccuracyRef = useRef(Infinity); // accuracy of the reading that set current progress
   const staleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const retryCountRef = useRef(0);
+  const trackingRef = useRef(false); // to check in async callbacks
 
-  // Build flat station list from route
-  const allStations: Station[] = [];
-  for (let i = 0; i < route.segments.length; i++) {
-    const seg = route.segments[i];
-    if (i === 0) allStations.push(seg.fromStation);
-    allStations.push(...seg.intermediateStations);
-    allStations.push(seg.toStation);
-  }
+  // Build flat station list
+  const allStations = useMemo(() => {
+    const stations: Station[] = [];
+    for (let i = 0; i < route.segments.length; i++) {
+      const seg = route.segments[i];
+      if (i === 0) stations.push(seg.fromStation);
+      stations.push(...seg.intermediateStations);
+      stations.push(seg.toStation);
+    }
+    return stations;
+  }, [route]);
 
   const destName = allStations[allStations.length - 1]?.name.th ?? "";
-  const cumDist = computeCumulativeDistances(allStations);
-  const cumTime = computeCumulativeTimes(route, allStations.length);
-  const totalRouteDistance = cumDist[cumDist.length - 1];
+  const cumDist = useMemo(() => computeCumulativeDistances(allStations), [allStations]);
+  const cumTime = useMemo(() => computeCumulativeTimes(route, allStations.length), [route, allStations.length]);
 
   const nearestIdx = progress >= 0 ? Math.round(progress) : -1;
 
-  // Estimated remaining time
   const estimatedRemainingMin = progress >= 0
-    ? Math.max(0, cumTime[cumTime.length - 1] - (cumTime[Math.floor(progress)] + (progress % 1) * (cumTime[Math.ceil(progress)] - cumTime[Math.floor(progress)])))
+    ? Math.max(0, cumTime[cumTime.length - 1] - (
+        cumTime[Math.floor(progress)] +
+        (progress % 1) * ((cumTime[Math.ceil(progress)] ?? cumTime[Math.floor(progress)]) - cumTime[Math.floor(progress)])
+      ))
     : null;
 
-  // Wake Lock management
+  // ---- Wake Lock ----
   const acquireWakeLock = useCallback(async () => {
     try {
       if ("wakeLock" in navigator) {
         wakeLockRef.current = await navigator.wakeLock.request("screen");
-        wakeLockRef.current.addEventListener("release", () => {
-          wakeLockRef.current = null;
-        });
+        wakeLockRef.current.addEventListener("release", () => { wakeLockRef.current = null; });
       }
-    } catch {
-      // Wake Lock not available or denied — non-critical
-    }
+    } catch { /* non-critical */ }
   }, []);
 
   const releaseWakeLock = useCallback(() => {
@@ -160,61 +164,63 @@ export default function RouteCardWithTracking({ route, children }: Props) {
     wakeLockRef.current = null;
   }, []);
 
-  // Re-acquire wake lock when page becomes visible again
-  useEffect(() => {
-    if (!tracking) return;
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible" && tracking) {
-        acquireWakeLock();
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [tracking, acquireWakeLock]);
-
+  // ---- Stale timer ----
   const resetStaleTimer = useCallback(() => {
     if (staleTimerRef.current) clearTimeout(staleTimerRef.current);
     setGpsStale(false);
-    staleTimerRef.current = setTimeout(() => setGpsStale(true), 30_000); // 30s without update = stale
+    staleTimerRef.current = setTimeout(() => setGpsStale(true), 15_000); // 15s = stale
   }, []);
 
-  const stop = useCallback(() => {
+  // ---- Clear GPS watch ----
+  const clearWatch = useCallback(() => {
     if (watchRef.current !== null) {
       navigator.geolocation.clearWatch(watchRef.current);
       watchRef.current = null;
     }
-    if (staleTimerRef.current) clearTimeout(staleTimerRef.current);
-    releaseWakeLock();
-    setTracking(false);
-    setProgress(-1);
-    progressRef.current = -1;
-    setNotified(false);
-    setError(null);
-    setGpsAccuracy(null);
-    setGpsStale(false);
-    retryCountRef.current = 0;
-  }, [releaseWakeLock]);
+  }, []);
 
+  // ---- Start GPS watch ----
   const startWatch = useCallback(() => {
+    clearWatch();
     watchRef.current = navigator.geolocation.watchPosition(
       (pos) => {
+        if (!trackingRef.current) return;
         const { latitude, longitude, accuracy } = pos.coords;
-        retryCountRef.current = 0;
         resetStaleTimer();
         setGpsAccuracy(Math.round(accuracy));
 
-        // Ignore very inaccurate readings (> 200m)
-        if (accuracy > 200) return;
+        // If accuracy is terrible (> 500m), show waiting but still try to update
+        // Only fully skip if > 1000m — completely useless
+        if (accuracy > 1000) {
+          setGpsWaiting(true);
+          return;
+        }
+
+        setGpsWaiting(false);
+
+        // Determine whether to allow backward correction:
+        // 1. First reading (progress == -1): always allow full scan
+        // 2. New reading is significantly more accurate than the one that set progress: recalculate
+        // 3. Otherwise: enforce monotonic forward
+        const isFirstReading = progressRef.current < 0;
+        const isMuchMoreAccurate = accuracy < progressAccuracyRef.current * 0.5; // 2x better accuracy
+        const allowBackward = isFirstReading || isMuchMoreAccurate;
 
         const newProgress = computeRouteProgress(
           latitude, longitude,
-          allStations, cumDist,
+          allStations,
           progressRef.current,
+          allowBackward,
         );
-        progressRef.current = newProgress;
-        setProgress(newProgress);
 
-        // Notify 1 station before end
+        // Update progress and record the accuracy that produced it
+        if (newProgress !== progressRef.current || allowBackward) {
+          progressRef.current = newProgress;
+          progressAccuracyRef.current = accuracy;
+          setProgress(newProgress);
+        }
+
+        // Notify near destination
         if (newProgress >= allStations.length - 2) {
           setNotified((prev) => {
             if (!prev && "Notification" in window && Notification.permission === "granted") {
@@ -228,42 +234,64 @@ export default function RouteCardWithTracking({ route, children }: Props) {
         }
       },
       (err) => {
-        // On timeout or position unavailable, don't stop — just show warning and retry
+        if (!trackingRef.current) return;
         if (err.code === 2 || err.code === 3) {
+          // Position unavailable or timeout — don't stop, restart
           setGpsStale(true);
-          // Auto-retry up to 5 times
-          if (retryCountRef.current < 5) {
-            retryCountRef.current++;
-            // Restart watch
-            if (watchRef.current !== null) {
-              navigator.geolocation.clearWatch(watchRef.current);
-            }
-            setTimeout(() => {
-              if (progressRef.current >= -1) { // still tracking
-                startWatch();
-              }
-            }, 2000);
-          } else {
-            setError(t("tracking.gpsError"));
-          }
+          clearWatch();
+          setTimeout(() => {
+            if (trackingRef.current) startWatch();
+          }, 3000);
           return;
         }
-        // Permission denied — stop completely
-        const msgs: Record<number, string> = {
-          1: t("tracking.permissionDenied"),
-        };
-        setError(msgs[err.code] ?? t("tracking.gpsError"));
+        // Permission denied
+        setError(t("tracking.permissionDenied"));
         setTracking(false);
+        trackingRef.current = false;
         releaseWakeLock();
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 5000,  // Reduced from 10s to 5s for fresher data
-        timeout: 20000,    // Increased from 15s to 20s for reliability
+        maximumAge: 3000,   // 3s — fresher data
+        timeout: 15000,     // 15s timeout
       },
     );
-  }, [allStations, cumDist, destName, t, resetStaleTimer, releaseWakeLock]);
+  }, [allStations, destName, t, resetStaleTimer, releaseWakeLock, clearWatch]);
 
+  // ---- Handle visibility change: restart GPS when screen wakes up ----
+  useEffect(() => {
+    if (!tracking) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && trackingRef.current) {
+        // Screen woke up — restart GPS watch for fresh data
+        acquireWakeLock();
+        setGpsStale(true);
+        setGpsWaiting(true);
+        startWatch(); // clearWatch + new watchPosition
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [tracking, acquireWakeLock, startWatch]);
+
+  // ---- Stop ----
+  const stop = useCallback(() => {
+    clearWatch();
+    if (staleTimerRef.current) clearTimeout(staleTimerRef.current);
+    releaseWakeLock();
+    trackingRef.current = false;
+    setTracking(false);
+    setProgress(-1);
+    progressRef.current = -1;
+    progressAccuracyRef.current = Infinity;
+    setNotified(false);
+    setError(null);
+    setGpsAccuracy(null);
+    setGpsStale(false);
+    setGpsWaiting(false);
+  }, [releaseWakeLock, clearWatch]);
+
+  // ---- Start ----
   const start = useCallback(() => {
     if (!("geolocation" in navigator)) {
       setError(t("tracking.noGps"));
@@ -272,32 +300,31 @@ export default function RouteCardWithTracking({ route, children }: Props) {
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
+    trackingRef.current = true;
     setTracking(true);
     setError(null);
     setNotified(false);
+    setGpsWaiting(true);
     progressRef.current = -1;
-    retryCountRef.current = 0;
+    progressAccuracyRef.current = Infinity;
     acquireWakeLock();
     resetStaleTimer();
     startWatch();
   }, [t, acquireWakeLock, resetStaleTimer, startWatch]);
 
+  // ---- Cleanup on unmount ----
   useEffect(() => () => {
-    if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current);
+    clearWatch();
     if (staleTimerRef.current) clearTimeout(staleTimerRef.current);
     releaseWakeLock();
-  }, [releaseWakeLock]);
-
-  const distanceText = progress >= 0
-    ? `${(totalRouteDistance * (1 - progress / (allStations.length - 1)) / 1000).toFixed(1)} km`
-    : "";
+    trackingRef.current = false;
+  }, [clearWatch, releaseWakeLock]);
 
   return (
     <div
       className="relative"
       data-tracking={tracking ? "true" : undefined}
       data-nearest={tracking ? nearestIdx : undefined}
-      style={{ "--nearest-idx": nearestIdx } as React.CSSProperties}
     >
       {/* Tracking controls */}
       <div className="px-4 py-2 border-b border-gray-100 bg-white rounded-t-xl">
@@ -313,15 +340,24 @@ export default function RouteCardWithTracking({ route, children }: Props) {
             {t("tracking.start")}
           </button>
         ) : (
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-2 text-xs text-green-600">
                 <span className="relative flex h-2 w-2">
-                  <span className={`absolute inline-flex h-full w-full rounded-full ${gpsStale ? "bg-yellow-400" : "bg-green-400"} opacity-75 animate-ping`} />
-                  <span className={`relative inline-flex rounded-full h-2 w-2 ${gpsStale ? "bg-yellow-500" : "bg-green-500"}`} />
+                  <span className={`absolute inline-flex h-full w-full rounded-full ${
+                    gpsWaiting ? "bg-yellow-400" : gpsStale ? "bg-yellow-400" : "bg-green-400"
+                  } opacity-75 animate-ping`} />
+                  <span className={`relative inline-flex rounded-full h-2 w-2 ${
+                    gpsWaiting ? "bg-yellow-500" : gpsStale ? "bg-yellow-500" : "bg-green-500"
+                  }`} />
                 </span>
-                {gpsStale ? t("tracking.gpsWeak") : t("tracking.active")}
-                {nearestIdx >= 0 && (
+                {gpsWaiting
+                  ? t("tracking.gpsSearching")
+                  : gpsStale
+                    ? t("tracking.gpsWeak")
+                    : t("tracking.active")
+                }
+                {nearestIdx >= 0 && !gpsWaiting && (
                   <span className="text-gray-500">
                     — {t("tracking.near", { station: allStations[nearestIdx]?.name.th ?? "" })}
                     <span className="text-gray-400 ml-1">
@@ -334,12 +370,13 @@ export default function RouteCardWithTracking({ route, children }: Props) {
                 {t("tracking.stop")}
               </button>
             </div>
+
             {/* Progress bar + ETA */}
             {progress >= 0 && (
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-blue-500 rounded-full transition-all duration-700 ease-out"
+                    className="h-full bg-blue-500 rounded-full transition-all duration-1000 ease-out"
                     style={{ width: `${Math.min(100, (progress / (allStations.length - 1)) * 100)}%` }}
                   />
                 </div>
@@ -350,11 +387,23 @@ export default function RouteCardWithTracking({ route, children }: Props) {
                   }
                 </span>
                 {gpsAccuracy !== null && (
-                  <span className={`text-[10px] ${gpsAccuracy <= 50 ? "text-green-400" : gpsAccuracy <= 150 ? "text-yellow-400" : "text-red-400"}`}>
+                  <span className={`text-[10px] shrink-0 ${
+                    gpsAccuracy <= 50 ? "text-green-500"
+                    : gpsAccuracy <= 150 ? "text-yellow-500"
+                    : gpsAccuracy <= 500 ? "text-orange-500"
+                    : "text-red-500"
+                  }`}>
                     ±{gpsAccuracy}m
                   </span>
                 )}
               </div>
+            )}
+
+            {/* Waiting for GPS signal */}
+            {gpsWaiting && progress < 0 && (
+              <p className="text-[11px] text-yellow-600 animate-pulse">
+                {t("tracking.gpsSearching")}...
+              </p>
             )}
           </div>
         )}
@@ -370,22 +419,16 @@ export default function RouteCardWithTracking({ route, children }: Props) {
 }
 
 function TrackingOverlay({
-  tracking,
-  progress,
-  stationCount,
-  children,
+  tracking, progress, stationCount, children,
 }: {
-  tracking: boolean;
-  progress: number;
-  stationCount: number;
-  children: React.ReactNode;
+  tracking: boolean; progress: number; stationCount: number; children: React.ReactNode;
 }) {
   if (!tracking || progress < 0) return <>{children}</>;
 
   const nearestIdx = Math.round(progress);
   const styles: string[] = [];
 
-  // Passed stations: darken and mark as visited
+  // Passed stations
   for (let i = 0; i < nearestIdx; i++) {
     const sel = `[data-station-global-index="${i}"]`;
     styles.push(
@@ -394,13 +437,11 @@ function TrackingOverlay({
     );
   }
 
-  // Current station: enlarged + pulse animation
+  // Current station: pulse
   const cur = `[data-station-global-index="${nearestIdx}"]`;
   styles.push(
     `${cur} .station-dot {
-      width: 16px !important;
-      height: 16px !important;
-      opacity: 1 !important;
+      width: 16px !important; height: 16px !important; opacity: 1 !important;
       margin: 0 !important;
       box-shadow: 0 0 0 4px rgba(37,99,235,0.25) !important;
       animation: tracking-pulse 2s ease-in-out infinite !important;
@@ -412,7 +453,7 @@ function TrackingOverlay({
     }`,
   );
 
-  // Upcoming stations: slightly faded
+  // Upcoming stations: faded
   for (let i = nearestIdx + 1; i < stationCount; i++) {
     const sel = `[data-station-global-index="${i}"]`;
     styles.push(

@@ -158,6 +158,7 @@ const th: Record<string, string> = {
   "tracking.start": "เปิดติดตามการเดินทาง (GPS)",
   "tracking.active": "กำลังติดตาม",
   "tracking.gpsWeak": "สัญญาณ GPS อ่อน",
+  "tracking.gpsSearching": "กำลังค้นหาสัญญาณ GPS",
   "tracking.near": "ใกล้ {station}",
   "tracking.stop": "หยุด",
   "tracking.noGps": "เบราว์เซอร์ไม่รองรับ GPS",
