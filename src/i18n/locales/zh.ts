@@ -154,22 +154,6 @@ const zh: Record<string, string> = {
   "footer.fareDisclaimer": "票价信息来自运营商，可能会变动",
   "footer.copyright": "Thai Transit © {year} — 搜索 BTS MRT ARL 列车路线",
 
-  // Tracking
-  "tracking.start": "追踪我的行程 (GPS)",
-  "tracking.active": "追踪中",
-  "tracking.gpsWeak": "GPS 信号弱",
-  "tracking.gpsSearching": "正在搜索 GPS 信号",
-  "tracking.near": "靠近 {station}",
-  "tracking.stop": "停止",
-  "tracking.noGps": "浏览器不支持 GPS",
-  "tracking.permissionDenied": "请允许位置访问",
-  "tracking.positionUnavailable": "无法确定位置",
-  "tracking.timeout": "超时",
-  "tracking.gpsError": "GPS 错误 — 请重试",
-  "tracking.arriving": "即将到达 {station} — 准备下车",
-  "tracking.minLeft": "分钟",
-  "tracking.arrived": "已到达!",
-
   // Language
   "lang.th": "ไทย",
   "lang.en": "English",

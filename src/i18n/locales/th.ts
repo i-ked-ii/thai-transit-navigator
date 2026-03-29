@@ -154,22 +154,6 @@ const th: Record<string, string> = {
   "footer.fareDisclaimer": "ข้อมูลราคาค่าโดยสารอ้างอิงจากผู้ให้บริการโดยตรง อาจมีการเปลี่ยนแปลง",
   "footer.copyright": "Thai Transit © {year} — ค้นหาเส้นทางรถไฟฟ้า BTS MRT ARL",
 
-  // Tracking
-  "tracking.start": "เปิดติดตามการเดินทาง (GPS)",
-  "tracking.active": "กำลังติดตาม",
-  "tracking.gpsWeak": "สัญญาณ GPS อ่อน",
-  "tracking.gpsSearching": "กำลังค้นหาสัญญาณ GPS",
-  "tracking.near": "ใกล้ {station}",
-  "tracking.stop": "หยุด",
-  "tracking.noGps": "เบราว์เซอร์ไม่รองรับ GPS",
-  "tracking.permissionDenied": "กรุณาอนุญาตการเข้าถึงตำแหน่ง",
-  "tracking.positionUnavailable": "ไม่สามารถระบุตำแหน่งได้",
-  "tracking.timeout": "หมดเวลา",
-  "tracking.gpsError": "เกิดข้อผิดพลาด GPS กรุณาลองใหม่",
-  "tracking.arriving": "ใกล้ถึง {station} แล้ว เตรียมลงสถานี",
-  "tracking.minLeft": "นาที",
-  "tracking.arrived": "ถึงแล้ว!",
-
   // Language
   "lang.th": "ไทย",
   "lang.en": "English",

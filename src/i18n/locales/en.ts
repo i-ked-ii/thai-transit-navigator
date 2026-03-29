@@ -154,22 +154,6 @@ const en: Record<string, string> = {
   "footer.fareDisclaimer": "Fare information is from operators and may change",
   "footer.copyright": "Thai Transit © {year} — Find BTS MRT ARL train routes",
 
-  // Tracking
-  "tracking.start": "Track my journey (GPS)",
-  "tracking.active": "Tracking",
-  "tracking.gpsWeak": "Weak GPS signal",
-  "tracking.gpsSearching": "Searching for GPS signal",
-  "tracking.near": "Near {station}",
-  "tracking.stop": "Stop",
-  "tracking.noGps": "Browser does not support GPS",
-  "tracking.permissionDenied": "Please allow location access",
-  "tracking.positionUnavailable": "Unable to determine position",
-  "tracking.timeout": "Timeout",
-  "tracking.gpsError": "GPS error — please try again",
-  "tracking.arriving": "Arriving at {station} soon — get ready",
-  "tracking.minLeft": "min left",
-  "tracking.arrived": "Arrived!",
-
   // Language
   "lang.th": "ไทย",
   "lang.en": "English",
